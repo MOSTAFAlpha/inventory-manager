@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventaire Matériel & Devis </title>
+    <style>
+        /* Styles Généraux */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f4f4f9; 
+        }
+        h1 { 
+            color: #333; 
+            text-align: center; 
+        }
+        .container { 
+            max-width: 1500px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            border-radius: 8px; 
+        }
+        
+        /* Tables */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 30px; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            text-align: left; 
+            vertical-align: top; /* Alignement vertical en haut pour un meilleur flux de document */
+        }
+        th { 
+            background-color: #007BFF; 
+            color: white; 
+            position: sticky; 
+            top: 0; 
+        }
+        /* Coloration des lignes paires pour la clarté */
+        tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+        }
+        
+        /* Inputs */
+        input[type="number"] { 
+            width: 100px; 
+            padding: 5px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            text-align: right; 
+        }
+        
+        /* Style for textarea in Notes column (main view) */
+        .notes-column textarea {
+            width: 100%;
+            height: 120px; /* Hauteur augmentée pour mieux remplir la case */
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical; 
+            font-family: inherit;
+            line-height: 1.4;
+            font-size: 0.9em; 
+        }
+        
+        /* Message Box */
+        #message-box {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #4CAF50; 
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(-20px);
+        }
+        .show {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        .filename-hint { font-size: 0.8em; color: #d9534f; display: block; margin-top: 5px; font-weight: bold; min-height: 20px; }
+        
+        /* Image Preview Styles */
+        .image-upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .image-preview {
+            width: 80px; 
+            height: 80px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #eee;
+        }
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; 
+        }
+        .image-placeholder {
+            font-size: 0.7em;
+            color: #999;
+            text-align: center;
+            padding: 5px;
+        }
+        
+        /* Grand Total Section */
+        .grand-total-box {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #28a745;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .spacer { height: 80px; }
+        .notes-column { width: 20%; } 
+        
+        /* Drag and Drop */
+        .drag-over {
+            background-color: #e0f7fa !important; 
+            transition: background-color 0.2s;
+        }
+
+        /* Print Button */
+        .print-button-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .print-button {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            background-color: #ffc107; 
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        .print-button:hover {
+            background-color: #ffcd39;
+        }
+
+        /* Filter Panel */
+        .filter-panel {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 5px solid #007BFF;
+        }
+        .filter-panel label {
+            margin-right: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+        }
+        .filter-panel input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        /* ============================= */
+        /* MEDIA PRINT STYLES (IMPRESSION) */
+        /* ============================= */
+        @media print {
+            /* Garder la coloration de fond et le padding minimum */
+            body { 
+                padding: 0; 
+            }
+            .container { 
+                box-shadow: none; 
+                padding: 0;
+                max-width: none;
+                background: transparent; 
+            }
+            
+            /* Cacher les éléments interactifs */
+            .print-button-container, 
+            .image-upload-container input[type="file"],
+            .filename-hint,
+            .image-placeholder,
+            #message-box,
+            #auth-status,
+            .filter-panel { 
+                display: none !important;
+            }
+
+            /* Afficher le Grand Total en bas, mais en statique */
+            .grand-total-box {
+                display: block !important;
+                position: static; 
+                background-color: #e9ecef; 
+                color: #333;
+                border-top: 2px solid #000;
+                margin-top: 20px;
+                box-shadow: none;
+                padding: 10px;
+                text-align: right;
+                width: 100%;
+                font-size: 1.2em;
+            }
+            .spacer { display: none; }
+
+            /* Gestion des champs d'entrée pour l'affichage statique */
+            
+            /* Masquer l'input de Prix Unitaire et afficher la valeur stockée */
+            td:nth-child(4) input[type="number"] { display: none !important; }
+            td[data-print-price]:not([data-print-price="0.00 DH"])::after {
+                content: attr(data-print-price);
+                display: block;
+                text-align: right;
+                font-weight: bold;
+            }
+            td[data-print-price][data-print-price="0.00 DH"]::after {
+                 content: '-';
+                 display: block;
+                 text-align: right;
+            }
+
+            /* Rendre les zones de texte (Notes) statiques */
+            td textarea {
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                height: auto !important; 
+                overflow: visible !important; 
+                resize: none !important;
+                /* Maintenir la taille du texte des notes pour la lisibilité sur papier */
+                font-size: 1.0em !important; 
+            }
+            
+            /* Assurer que les images sont bien dimensionnées pour l'impression */
+            .image-preview {
+                border: 1px solid #ccc;
+                width: 60px;
+                height: 60px;
+                margin: 0 auto;
+            }
+            
+            /* Garder la coloration des en-têtes et des lignes paires */
+            th { 
+                background-color: #007BFF !important; 
+                color: white !important;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+            }
+            tr:nth-child(even) { 
+                background-color: #f0f0f0 !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+            }
+            
+            /* S'assurer que les bordures sont claires */
+            th, td { border: 1px solid #999 !important; }
+
+            /* La zone pour les règles de masquage dynamique sera ici */
+        }
+    </style>
+    <!-- Le style dynamique pour le masquage des colonnes sera injecté ici -->
+    <style id="print-hide-styles"></style> 
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 Gestion de Stock & Devis (Table Fusionnée)</h1>
+
+    <div id="auth-status" style="text-align: right; margin-bottom: 10px; font-size: 0.9em; color: #555;">
+        Authentification en cours...
+    </div>
+
+    <div class="print-button-container">
+        <button class="print-button" onclick="window.print()">🖨️ Imprimer le Devis / Inventaire</button>
+    </div>
+
+    <p><em>Cliquez sur "Choisir un fichier" ou **Glissez-Déposez** une image directement sur la case pour voir un aperçu. Les prix et notes sont automatiquement sauvegardés.</em></p>
+    
+    <!-- Panneau de contrôle des colonnes pour l'impression -->
+    <div class="filter-panel">
+        <strong style="display: block; margin-bottom: 10px;">Masquer les colonnes pour l'impression:</strong>
+        <!-- Les checkboxes seront générées par JavaScript -->
+        <div id="column-filter-controls"></div>
+    </div>
+    
+    <table id="fullDataTable">
+        <thead>
+            <tr>
+                <th data-col-name="Réf">Réf</th> <!-- Index 0 -->
+                <th data-col-name="Désignation" style="width: 30%;">Désignation</th> <!-- Index 1 -->
+                <th data-col-name="Quantité">Quantité (Stock)</th> <!-- Index 2 -->
+                <th data-col-name="Prix Unitaire">Prix Unitaire (DH)</th> <!-- Index 3 -->
+                <th data-col-name="Prix Total">Prix Total (DH)</th> <!-- Index 4 -->
+                <th data-col-name="Image" style="width: 10%;">Upload Image</th> <!-- Index 5 -->
+                <th data-col-name="Notes" class="notes-column">Notes / Explications</th> <!-- Index 6 -->
+            </tr>
+        </thead>
+        <tbody id="dataBody">
+            <!-- Les lignes de données seront insérées ici par JavaScript -->
+        </tbody>
+    </table>
+
+    <div class="spacer"></div>
+</div>
+
+<div class="grand-total-box">
+    GRAND TOTAL : <span id="grandTotal">0.00</span> DH
+</div>
+
+<!-- Message Box for Success/Error -->
+<div id="message-box"></div>
+
+
+<script type="module">
+    // --- FIREBASE IMPORTS ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- GLOBAL FIREBASE/APP VARIABLES ---
+    let db;
+    let auth;
+    let userId = null;
+    let isAuthReady = false;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' && __firebase_config !== '' ? __firebase_config : '{}');
+
+    // Firestore paths
+    const COLLECTION_NAME = 'inventoryItems'; 
+    const getDocumentPath = (ref) => `artifacts/${appId}/users/${userId}/${COLLECTION_NAME}/${ref}`;
+
+    // --- UTILITIES ---
+    /** Affiche un message temporaire de confirmation/erreur */
+    function showMessage(message, isError = false) {
+        const msgBox = document.getElementById('message-box');
+        msgBox.textContent = message;
+        msgBox.style.backgroundColor = isError ? '#d9534f' : '#4CAF50';
+        msgBox.classList.add('show');
+        setTimeout(() => {
+            msgBox.classList.remove('show');
+        }, 3000);
+    }
+
+    // --- DATA SAVING LOGIC (Firestore) ---
+    async function saveData(ref, field, value) {
+        if (!isAuthReady || !userId) {
+             console.warn("Authentication not ready. Cannot save data yet.");
+             showMessage("Erreur : Connexion à la base de données non établie.", true);
+             return;
+        }
+        
+        const dataToSave = {};
+        dataToSave[field] = value;
+        const docRef = doc(db, getDocumentPath(ref));
+        
+        try {
+            await setDoc(docRef, dataToSave, { merge: true });
+            console.log(`Saved ${field} for Ref ${ref}`);
+            // showMessage(`Sauvegarde réussie pour Réf ${ref}.`, false); // Commenté pour éviter les spams de messages
+        } catch (error) {
+            console.error("Error saving document for Ref", ref, error);
+            showMessage(`Erreur de sauvegarde pour Réf ${ref}.`, true);
+        }
+    }
+    window.saveData = saveData;
+
+    /** Calcule le total de la ligne, met à jour le grand total, et sauvegarde le prix */
+    function calculateAndSavePrice(inputElement) {
+        const ref = inputElement.getAttribute('data-ref');
+        const price = parseFloat(inputElement.value) || 0; 
+        
+        // 1. Mise à jour des totaux (Ligne et Global)
+        calculateTotals();
+        
+        // 2. Sauvegarde du prix
+        saveData(ref, 'price', price);
+        
+        // 3. Mise à jour de l'attribut d'impression
+        const priceCell = inputElement.closest('td');
+        if(priceCell) {
+            priceCell.setAttribute('data-print-price', price.toFixed(2) + ' DH');
+        }
+    }
+    window.calculateAndSavePrice = calculateAndSavePrice;
+
+    function saveNote(textareaElement) {
+        const fullRef = textareaElement.getAttribute('data-ref');
+        const ref = fullRef.split('-')[0]; 
+        const note = textareaElement.value;
+        
+        saveData(ref, 'note', note);
+    }
+    window.saveNote = saveNote;
+
+    // --- DATA LOADING LOGIC (Firestore) ---
+    async function loadData() {
+        if (!isAuthReady || !userId) return;
+
+        const loadPromises = data.map(item => {
+            const ref = item.ref;
+            const docRef = doc(db, getDocumentPath(ref));
+
+            return getDoc(docRef).then(docSnap => {
+                if (docSnap.exists()) {
+                    const savedData = docSnap.data();
+                    
+                    if (savedData.price !== undefined && savedData.price !== null) {
+                        const priceInput = document.querySelector(`input[data-ref="${ref}"]`);
+                        if (priceInput) {
+                            priceInput.value = savedData.price;
+                            // NOTE IMPORTANTE: Ne pas appeler calculateTotals ici, car il sera appelé à la fin
+                            // On s'assure juste que la cellule d'impression est mise à jour immédiatement
+                            const priceCell = priceInput.closest('td');
+                            if(priceCell) {
+                                priceCell.setAttribute('data-print-price', parseFloat(savedData.price).toFixed(2) + ' DH');
+                            }
+                        }
+                    }
+
+                    if (savedData.note) {
+                        const noteTextarea = document.querySelector(`textarea[data-ref="${ref}-notes"]`);
+                        if (noteTextarea) {
+                            noteTextarea.value = savedData.note;
+                        }
+                    }
+                }
+            }).catch(error => {
+                console.error(`Error loading data for Ref ${ref}:`, error);
+            });
+        });
+        
+        await Promise.all(loadPromises);
+        calculateTotals(); // Calculer le total une seule fois après le chargement de toutes les données.
+        showMessage("Données chargées et prêtes à être sauvegardées.");
+    }
+
+
+    // --- AUTHENTICATION & INITIALIZATION ---
+
+    async function initializeFirebase() {
+        if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+            document.getElementById('auth-status').textContent = 'Initialisation Firebase impossible (configuration manquante).';
+            console.error('Firebase configuration is missing.');
+            return;
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            // setLogLevel('debug'); // Décommenter pour le débogage
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                } else {
+                    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser?.uid;
+                }
+                
+                if (userId) {
+                    isAuthReady = true;
+                    document.getElementById('auth-status').textContent = `Connecté (ID Utilisateur: ${userId})`;
+                    loadData(); // Load data once authenticated
+                } else {
+                    isAuthReady = false;
+                    document.getElementById('auth-status').textContent = 'Erreur de connexion à la base de données.';
+                }
+            });
+
+        } catch (error) {
+            console.error("Firebase initialization or authentication failed:", error);
+            document.getElementById('auth-status').textContent = 'Erreur: Échec de la connexion à la base de données.';
+        }
+    }
+
+
+    // --- PRINT FILTERING LOGIC (NO FIREBASE) ---
+
+    // Mettre à jour les règles CSS pour masquer les colonnes non sélectionnées.
+    function updatePrintStyles() {
+        const headers = document.querySelectorAll('#fullDataTable thead th');
+        let cssToInject = `@media print {\n`;
+
+        headers.forEach((th, index) => {
+            const colName = th.getAttribute('data-col-name') || th.textContent.trim();
+            const checkbox = document.getElementById(`col-filter-${index}`);
+            
+            // Si la checkbox n'existe pas ou n'est pas cochée
+            if (checkbox && !checkbox.checked) {
+                // nth-child utilise 1-based index, donc index + 1
+                cssToInject += `  #fullDataTable th:nth-child(${index + 1}),\n`;
+                cssToInject += `  #fullDataTable td:nth-child(${index + 1}) {\n`;
+                cssToInject += `    display: none !important;\n`;
+                cssToInject += `  }\n`;
+            }
+        });
+
+        cssToInject += `}`;
+
+        // Injecter le CSS dans la balise <style id="print-hide-styles">
+        document.getElementById('print-hide-styles').textContent = cssToInject;
+    }
+    window.updatePrintStyles = updatePrintStyles;
+
+    // Générer les contrôles de filtrage des colonnes (Checkboxes)
+    function generateFilterControls() {
+        const headers = document.querySelectorAll('#fullDataTable thead th');
+        const controlsDiv = document.getElementById('column-filter-controls');
+        
+        headers.forEach((th, index) => {
+            const colName = th.getAttribute('data-col-name') || th.textContent.trim();
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `col-filter-${index}`;
+            checkbox.value = index; 
+            checkbox.checked = true; 
+            checkbox.onchange = updatePrintStyles;
+
+            const label = document.createElement('label');
+            label.htmlFor = `col-filter-${index}`;
+            label.textContent = colName;
+            
+            const span = document.createElement('span');
+            span.appendChild(checkbox);
+            span.appendChild(label);
+            controlsDiv.appendChild(span);
+        });
+
+        // Initialiser les styles d'impression (tout est visible au départ)
+        updatePrintStyles();
+    }
+
+
+    // --- DATA & RENDERING ---
+    
+    // Data (Matériels, Référence, Désignation, Quantité)
+    const data = [
+        {ref: "1", des: "ADAPTEURS UG-21 REFERENCE NOR 161018", qty: 19},
+        {ref: "2", des: "ADAPTEURS UG-88 REFERENCE R 141007", qty: 19},
+        {ref: "3", des: "AEROSOL A AIR COMPRIME 400ML", qty: 56},
+        {ref: "5", des: "AMPOULE DE BALISAGE FILETAGE E14 230V", qty: 22},
+        {ref: "8", des: "BOITE DE RACCORDEMNT 30 PAIRES (TPR 30/3M)", qty: 23},
+        {ref: "11", des: "BOUCHONS ANTIDEFLAGRANTS (12V ET 06V)", qty: 153},
+        {ref: "12", des: "BOUCHONS ANTIDEFLAGRANTS 2V 990AH C 1 20 OPZA", qty: 204},
+        {ref: "13", des: "BOUGIE SPARK PLUG MODELE 'C6HSA'", qty: 13},
+        {ref: "14", des: "CABLE COAXIAL 500 TYPE RG 213", qty: 79},
+        {ref: "15", des: "CABLE COAXIAL RIGIDE RG-58", qty: 79},
+        {ref: "22", des: "CABLE EN ACIER GALVANISE 10", qty: 77},
+        {ref: "23", des: "CABLE LY 30 PAIRES (STY 1 OU 2780306) (0,6mm)", qty: 77},
+        {ref: "24", des: "CABLE LY 56 PAIRES (STY 1 OU 2780566) (0,6mm)", qty: 77},
+        {ref: "31", des: "CISAILLE MULTI-USAGES HEAVY DUTY LAME DROITE", qty: 6},
+        {ref: "34", des: "COLLIER DE SERRAGE PLASTIQUE NOIR G.F (PQ 100) 280MM", qty: 26},
+        {ref: "35", des: "COMBINE DE TEST BCA LK.O 120", qty: 7},
+        {ref: "37", des: "CORDE EN NYLON 24 MM DE 55 M", qty: 14},
+        {ref: "38", des: "COSSE CŒUR ACIER GALVANISE GRAND MODEL", qty: 26},
+        {ref: "39", des: "COSSES 670 08 OO 9 06MM", qty: 18},
+        {ref: "40", des: "CUTTEURS LAME RETRACTABLE GRAND MODEL", qty: 12},
+        {ref: "41", des: "DECAMETRE BOITIER ABS RUBAN SOUPLE FIBRE", qty: 6},
+        {ref: "43", des: "EAU DEMINERALISEE EN BIDON DE 5 L", qty: 112},
+        {ref: "45", des: "FER PLAT 60 X 5 DE 6M", qty: 4},
+        {ref: "46", des: "FILTRES BAIE OUTDOUR FH (F5) 1200X440X25MM", qty: 45},
+        {ref: "47", des: "FLACONS HUILE DE VASELINE 200ML", qty: 22},
+        {ref: "52", des: "GRAISSE SILICONE 500 TUBE 100G", qty: 32},
+        {ref: "53", des: "LAMPE A FILETAGE 220 V (ECONOMIQUE)", qty: 75},
+        {ref: "54", des: "LIQUIDE NETTOYAGE CAMERAS < 200°F (93°C)", qty: 60},
+        {ref: "56", des: "MADRIER 3.25 M/20 CM/6 MM", qty: 16},
+        {ref: "58", des: "MOUSSE NETTOYAGE MULTI SURFACE ANTISTATIQUE 400ML", qty: 57},
+        {ref: "60", des: "PAQUET MECHES PERCEUSES (BETON) 06-8-10-12", qty: 10},
+        {ref: "64", des: "PIQUET MASSE ACIER GALVA LONG. 1200 D 4 MM", qty: 10},
+        {ref: "66", des: "POULIE DE LEVAGE DIA 180MM", qty: 4},
+        {ref: "67", des: "PRISE ELECTRIQUE FEMELLE 220 V", qty: 20},
+        {ref: "69", des: "ROULEAU SOUDURE 60/40 ETAIN PLOMB 0.7mm 500G", qty: 13},
+        {ref: "71", des: "SCOTCH GOUDRONNE EP. 3mm X LONG.1500mm", qty: 41},
+        {ref: "72", des: "SCOTCH GOUDRONNE AUTO-SOUDABLE 19mm x 9.15m", qty: 41},
+        {ref: "73", des: "TOILE GRISE POUR ETANCHETTE 50MM X 50M", qty: 12},
+        {ref: "78", des: "TOLE FORTE 20/ 10 DE 2 M/1M", qty: 5},
+        {ref: "79", des: "TRESSE DE MASSE 4,0 mm", qty: 13},
+        {ref: "80", des: "TRESSES A DESSOUDER RoHS 2,0mm long. 1,5m", qty: 21},
+        {ref: "81", des: "TUBE NOIR EN ACIER DE 2 POUCES DE 1,5 M", qty: 5},
+        {ref: "83", des: "CHIFFONS DOUX POUR VITRES N°6", qty: 53},
+        {ref: "87", des: "44,JE9T-9 CLES A FOURCHES DE 3,2 A 19 MM", qty: 3},
+        {ref: "93", des: "AFU,21 POSE-VIS POUR A FENTE", qty: 3},
+        {ref: "104", des: "834,RI 1 MIROIR ORIENTABLE", qty: 3},
+        {ref: "105", des: "835A-1 TIRE-RESSORT", qty: 3},
+        {ref: "106", des: "836-1 LAMPE-STYLO", qty: 7},
+        {ref: "107", des: "SELECTION MECANIQUE GENERALE 84 OUTILS", qty: 4},
+        {ref: "108", des: "440,JE14-14 CLES MIXTES DE 7 A 24MM", qty: 3},
+        {ref: "111", des: "SL,DBOXI-21 DOUILLES 1/2 (COFFRET)", qty: 3},
+        {ref: "120", des: "1 81A.25CPE - PINCE MULTIPRISE A VETRROUILLAGE", qty: 2},
+        {ref: "129", des: "AP6X80-1 POINTE CARREE", qty: 3},
+        {ref: "132", des: "247,G-2 CHASSE-CLOUS DE 2-4 MM", qty: 3},
+        {ref: "133", des: "249,G-2 CHASSE-GOUPILLES GANES DE 2-4 MM", qty: 3},
+        {ref: "139", des: "BIDON EN PLASTIQUE 120 LITRES", qty: 8}
+    ];
+
+    const dataBody = document.getElementById('dataBody');
+    const grandTotalEl = document.getElementById('grandTotal');
+
+    /** Calcule les totaux de toutes les lignes et met à jour le Grand Total */
+    function calculateTotals() {
+        let total = 0;
+        
+        data.forEach(item => {
+            const ref = item.ref;
+            const qty = item.qty;
+            const priceInput = document.querySelector(`input[data-ref="${ref}"]`);
+            
+            // Récupérer la valeur du prix (qui a pu être chargée ou saisie)
+            const price = parseFloat(priceInput ? priceInput.value : '0') || 0;
+            const lineTotal = qty * price;
+
+            // Mettre à jour le total de la ligne dans le DOM
+            const totalEl = document.getElementById(`total-${ref}`);
+            if (totalEl) {
+                totalEl.innerText = lineTotal.toFixed(2);
+            }
+
+            // Ajouter au grand total
+            total += lineTotal;
+            
+            // S'assurer que la cellule d'impression est à jour (même si on ne sauvegarde pas dans cette fonction)
+             const priceCell = priceInput.closest('td');
+            if(priceCell) {
+                priceCell.setAttribute('data-print-price', price.toFixed(2) + ' DH');
+            }
+        });
+
+        // Mettre à jour le Grand Total
+        grandTotalEl.innerText = total.toFixed(2);
+    }
+    
+    window.calculateTotals = calculateTotals;
+
+    function previewImage(fileList, ref) {
+        const file = fileList[0];
+        const previewContainer = document.getElementById(`preview-${ref}`);
+        const filenameHint = document.getElementById(`filename-hint-${ref}`); 
+        previewContainer.innerHTML = ''; 
+        
+        const defaultHintText = `Nom attendu: images/${ref}.jpg (Ou .png)`;
+        filenameHint.textContent = defaultHintText;
+        filenameHint.style.color = '#d9534f'; 
+
+        if (file && file.type.startsWith('image/')) {
+            let extension = '.jpg';
+            if (file.type.includes('png')) {
+                extension = '.png';
+            } else if (file.type.includes('jpeg')) {
+                extension = '.jpg';
+            }
+
+            const expectedFilename = `images/${ref}${extension}`;
+            
+            filenameHint.textContent = `Nom du fichier attendu (sur le serveur): ${expectedFilename}`;
+            filenameHint.style.color = '#007BFF'; 
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = `Image de ${ref}`;
+                
+                previewContainer.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.innerHTML = '<span class="image-placeholder">Glissez ici / Pas d\'image</span>';
+        }
+    }
+    window.previewImage = previewImage;
+
+    function handleDragOver(event, ref) {
+        event.preventDefault(); 
+        event.currentTarget.classList.add('drag-over');
+    }
+    window.handleDragOver = handleDragOver;
+
+    function handleDragLeave(event) {
+        event.currentTarget.classList.remove('drag-over');
+    }
+    window.handleDragLeave = handleDragLeave;
+
+    function handleDrop(event, ref) {
+        event.preventDefault(); 
+        handleDragLeave(event);
+        
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            previewImage(files, ref); 
+        }
+    }
+    window.handleDrop = handleDrop;
+
+
+    // Function to render the tables
+    function renderTable() {
+        dataBody.innerHTML = ''; 
+        data.forEach((item, index) => {
+            let row = document.createElement('tr');
+            // Ajoute la classe 'col-idx-X' à chaque cellule pour le ciblage CSS d'impression
+            row.innerHTML = `
+                <td class="col-idx-0"><strong>${item.ref}</strong></td>
+                <td class="col-idx-1">${item.des}</td>
+                <td class="col-idx-2">${item.qty}</td>
+                <td class="col-idx-3" data-print-price="0.00 DH">
+                    <input type="number" min="0" step="0.01" placeholder="0.00" 
+                           data-ref="${item.ref}" data-qty="${item.qty}" 
+                           oninput="calculateAndSavePrice(this)">
+                </td>
+                <td id="total-${item.ref}" class="col-idx-4 total-price-cell-merged">0.00</td>
+                <td id="image-cell-${item.ref}" class="col-idx-5"
+                    style="position: relative;"
+                    ondragover="handleDragOver(event, '${item.ref}')"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleDrop(event, '${item.ref}')">
+                    
+                    <div class="image-upload-container">
+                        <div id="preview-${item.ref}" class="image-preview">
+                            <span class="image-placeholder">Glissez ici / Pas d\'image</span>
+                        </div>
+                        <input type="file" accept="image/*" 
+                               onchange="previewImage(this.files, '${item.ref}')"
+                               style="max-width: 100%;">
+                        <span id="filename-hint-${item.ref}" class="filename-hint">Nom attendu: images/${item.ref}.jpg (Ou .png)</span>
+                    </div>
+                </td>
+                <td class="col-idx-6 notes-column">
+                    <textarea placeholder="Ajouter une note ou explication..." data-ref="${item.ref}-notes" 
+                              oninput="saveNote(this)"></textarea>
+                </td>
+            `;
+            dataBody.appendChild(row);
+        });
+        
+        // 1. Initialiser le contrôle de filtre
+        generateFilterControls(); 
+        
+        // 2. Initialiser la base de données
+        initializeFirebase();
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', renderTable);
+</script>
+
+</body>
+</html>
