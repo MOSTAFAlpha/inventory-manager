@@ -1,0 +1,30 @@
+# Images folder (product photos)
+images/
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Operating system files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node modules (if using npm)
+node_modules/
+package-lock.json
+
+# Local backup files
+*.bak
+*.backup
+
+# Exported data (local exports)
+inventory-data-*.json
