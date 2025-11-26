@@ -706,10 +706,27 @@ function loadSavedImages() {
             const previewContainer = document.getElementById(`preview-${ref}`);
             if (previewContainer) {
                 previewContainer.innerHTML = '';
-                const img = document.createElement('img');
-                img.src = savedImageData;
-                img.alt = `Image de ${ref}`;
-                previewContainer.appendChild(img);
+        // Create wrapper for image and delete button
+        const wrapper = document.createElement('div');
+        wrapper.className = 'image-preview-wrapper';
+        
+        // Create image
+        const img = document.createElement('img');
+        img.src = savedImageData;
+        img.alt = `Image de ${ref}`;
+        wrapper.appendChild(img);
+        
+        // Create delete button (CROIX)
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'image-delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.onclick = function(e) {
+          e.preventDefault();
+          deleteImage('${ref}');
+        };
+        wrapper.appendChild(deleteBtn);
+        
+        previewContainer.appendChild(wrapper);
             }
         }
     });
@@ -893,6 +910,7 @@ window.loadSavedImages = loadSavedImages;
 </body>
 
 </html>
+
 
 
 
