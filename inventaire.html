@@ -402,6 +402,8 @@
         
         // 2. Sauvegarde du prix
         saveData(ref, 'price', price);
+            // Sauvegarde aussi dans localStorage comme backup
+    localStorage.setItem(`price-${ref}`, price);
         
         // 3. Mise à jour de l'attribut d'impression
         const priceCell = inputElement.closest('td');
@@ -695,6 +697,18 @@ function loadSavedImages() {
             }
         }
     });
+    
+    // Charger aussi les prix sauvegardés depuis localStorage
+    data.forEach(item => {
+        const ref = item.ref;
+        const savedPrice = localStorage.getItem(`price-${ref}`);
+        if (savedPrice) {
+            const priceInput = document.querySelector(`input[data-ref="${ref}"]`);
+            if (priceInput) {
+                priceInput.value = savedPrice;
+            }
+        }
+    });
 }
 window.loadSavedImages = loadSavedImages;
 
@@ -819,4 +833,5 @@ window.loadSavedImages = loadSavedImages;
 </body>
 
 </html>
+
 
