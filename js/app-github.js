@@ -177,6 +177,76 @@ function loadFromLocalStorage() {
   }
 }
 
+// ====== ENHANCED localStorage BACKUP FOR ALL COLUMNS ======
+// Ces fonctions sauvegardent ALL column data (prix, notes, images) en localStorage
+// comme sauvegarde de secours en cas d'indisponibilité de Firebase
+
+/** Sauvegarde complète de l'inventaire avec tous les données dans localStorage **/
+function saveInventoryToLocalStorage() {
+    const inventory = {};
+    const refs = document.querySelectorAll('input[data-ref]');
+    
+    refs.forEach(input => {
+        const ref = input.getAttribute('data-ref');
+        const priceValue = parseFloat(input.value) || 0;
+        const noteTextarea = document.querySelector(`textarea[data-ref="${ref}-notes"]`);
+        const noteValue = noteTextarea ? noteTextarea.value : '';
+        const imageSrc = localStorage.getItem(`image-${ref}`);
+        
+        inventory[ref] = {
+            price: priceValue,
+            note: noteValue,
+            image: imageSrc || null,
+            timestamp: new Date().toISOString()
+        };
+    });
+    
+    try {
+        localStorage.setItem('inventory-backup', JSON.stringify(inventory));
+        if (window.showMessage) showMessage('✅ Inventaire sauvegardé en localStorage', false);
+    } catch (error) {
+        console.error('Erreur sauvegarde localStorage:', error);
+        if (window.showMessage) showMessage('❌ Erreur sauvegarde', true);
+    }
+}
+
+/** Restore l'inventaire depuis localStorage en cas de perte de données **/
+function restoreInventoryFromLocalStorage() {
+    try {
+        const backupData = localStorage.getItem('inventory-backup');
+        if (!backupData) return false;
+        
+        const inventory = JSON.parse(backupData);
+        Object.keys(inventory).forEach(ref => {
+            const item = inventory[ref];
+            
+            // Restaurer le prix
+            const priceInput = document.querySelector(`input[data-ref="${ref}"]`);
+            if (priceInput) priceInput.value = item.price;
+            
+            // Restaurer la note
+            const noteTextarea = document.querySelector(`textarea[data-ref="${ref}-notes"]`);
+            if (noteTextarea) noteTextarea.value = item.note;
+            
+            // Restaurer l'image
+            if (item.image) localStorage.setItem(`image-${ref}`, item.image);
+        });
+        
+        if (window.calculateTotals) window.calculateTotals();
+        if (window.loadSavedImages) window.loadSavedImages();
+        if (window.showMessage) showMessage('✅ Données restaurées depuis sauvegarde locale', false);
+        
+        return true;
+    } catch (error) {
+        console.error('Erreur restauration localStorage:', error);
+        return false;
+    }
+}
+
+// Exporter les nouvelles fonctions
+window.saveInventoryToLocalStorage = saveInventoryToLocalStorage;
+window.restoreInventoryFromLocalStorage = restoreInventoryFromLocalStorage;
+
 // Exporter les fonctions
 window.loadInventoryFromGitHub = loadInventoryFromGitHub;
 window.exportInventoryToJSON = exportInventoryToJSON;
